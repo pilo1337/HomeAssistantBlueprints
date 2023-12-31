@@ -1,0 +1,63 @@
+blueprint:
+  name: Trigger time with Offset
+  description: This can trigger one Action at the time of the helper and another with an offset
+  domain: automation
+  input:
+    datetimehelper:
+      name: DateTime Helper
+      description: The Time Helper which you want to check
+      selector:
+        entity:
+          domain: input_datetime
+          multiple: false
+    offset_timer:
+      name: Offset
+      description: Offset for Second Trigger in seconds
+      default: -60
+      selector:
+        number:
+          min: -120
+          step: 1
+          max: 120
+          mode: slider
+    trigger_action:
+      name: Action to Trigger at TimeHelper Time
+      description: What should happen at the TimeHelper Time
+      selector:
+        action: {}
+    trigger_action_offset:
+      name: Action to Trigger at TimeHelper Offset Time
+      description: What should happen at the configured Offset
+      selector:
+        action: {}
+
+trigger_variables:
+  varTimeHelper: !input 'datetimehelper'
+  varOffsetTimer: !input 'offset_timer'
+
+trigger:
+- platform: time
+  at: !input datetimehelper
+  id:  normalTime
+- platform: template
+  value_template: "{{ now().strftime('%H:%M:%S') == ((state_attr(varTimeHelper,'timestamp') + varOffsetTimer) | timestamp_custom('%H:%M:%S', false)) }}"
+  id: offset1
+condition:
+action:
+- choose:
+    - conditions:
+       - condition: trigger
+         id:
+           - normalTime
+      sequence:
+        - alias: "Run TimeHelper Time Action"
+          choose: []
+          default: !input trigger_action
+    - conditions:
+       - condition: trigger
+         id:
+           - offset1
+      sequence:
+         - alias: "Run Offset Time Action"
+           choose: []
+           default: !input trigger_action_offset
